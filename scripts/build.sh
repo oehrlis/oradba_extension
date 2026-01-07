@@ -46,7 +46,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --dist)
-            DIST_DIR="$(cd "$2" && pwd)"
+            DIST_DIR="$2"
             shift 2
             ;;
         --version)
@@ -70,6 +70,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ ! -d "$DIST_DIR" ]]; then
+    mkdir -p "$DIST_DIR"
+fi
+DIST_DIR="$(cd "$DIST_DIR" && pwd)"
 
 if [[ ! -f "${SOURCE_DIR}/.extension" ]]; then
     echo "Missing .extension file in ${SOURCE_DIR}" >&2
