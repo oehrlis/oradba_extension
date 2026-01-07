@@ -65,7 +65,7 @@ jobs:
         id: notes
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          cat > release_notes.md <<'NOTES'
+          cat > release_notes.md <<EOF
 # OraDBA Extension Template v${VERSION}
 
 Reusable OraDBA extension template tarball.
@@ -75,7 +75,7 @@ Reusable OraDBA extension template tarball.
 
 ## Usage
 Extract the tarball into ${ORADBA_LOCAL_BASE} and adjust metadata/configs as needed.
-NOTES
+EOF
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
