@@ -7,7 +7,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="$ROOT_DIR"
 DIST_DIR="${ROOT_DIR}/dist"
 VERSION_FILE="${ROOT_DIR}/VERSION"
-META_FILE="${ROOT_DIR}/.extension"
 
 CHECKSUM=true
 DRY_RUN=false
@@ -83,7 +82,7 @@ EXTENSION_NAME="${META_NAME:-$(basename "$SOURCE_DIR")}"
 
 if [[ -z "$VERSION" ]]; then
     if [[ -f "$VERSION_FILE" ]]; then
-        VERSION="$(cat "$VERSION_FILE" | tr -d '[:space:]')"
+        VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
     elif [[ -n "$META_VERSION" ]]; then
         VERSION="$META_VERSION"
     else
