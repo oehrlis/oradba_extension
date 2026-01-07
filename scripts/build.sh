@@ -11,6 +11,8 @@ VERSION_FILE="${ROOT_DIR}/VERSION"
 CHECKSUM=true
 DRY_RUN=false
 VERSION=""
+EXT_CHECKSUM_FILE=".extension.checksum"
+CLEANUP_CHECKSUM=false
 
 usage() {
     cat <<'USAGE'
@@ -30,6 +32,14 @@ USAGE
 
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+checksum_cmd() {
+    if command_exists sha256sum; then
+        sha256sum "$1"
+    else
+        shasum -a 256 "$1"
+    fi
 }
 
 read_metadata_value() {
@@ -122,6 +132,48 @@ if [[ ${#FILES[@]} -eq 0 ]]; then
     echo "No content found to package" >&2
     exit 1
 fi
+
+# ------------------------------------------------------------------------------
+# Generate checksum file (added to tarball, not kept in source)
+# ------------------------------------------------------------------------------
+generate_checksum_file() {
+    local checksum_path="${SOURCE_DIR}/${EXT_CHECKSUM_FILE}"
+    CLEANUP_CHECKSUM=true
+
+    {
+        echo "# OraDBA Extension Checksums"
+        echo "# Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "# Version: ${VERSION}"
+        echo "#"
+
+        cd "${SOURCE_DIR}" || exit 1
+
+        # Collect files included in the package (excluding the checksum itself)
+        mapfile -t checksum_list < <(
+            for entry in "${FILES[@]}"; do
+                [[ "$entry" == "$EXT_CHECKSUM_FILE" ]] && continue
+                if [[ -d "$entry" ]]; then
+                    find "$entry" -type f
+                elif [[ -f "$entry" ]]; then
+                    echo "$entry"
+                fi
+            done | sort
+        )
+
+        for f in "${checksum_list[@]}"; do
+            checksum_cmd "$f"
+        done
+    } > "$checksum_path"
+
+    local count
+    count=$(grep -c '^[^#]' "$checksum_path" || true)
+    echo "Created checksum file ${EXT_CHECKSUM_FILE} with ${count} entries"
+}
+
+trap '[[ "$CLEANUP_CHECKSUM" == true ]] && rm -f "${SOURCE_DIR}/${EXT_CHECKSUM_FILE}"' EXIT
+
+generate_checksum_file
+FILES+=("$EXT_CHECKSUM_FILE")
 
 echo "Extension : ${EXTENSION_NAME}"
 zip_list=$(printf '\n  - %s' "${FILES[@]}")
