@@ -152,6 +152,7 @@ generate_checksum_file() {
         mapfile -t checksum_list < <(
             for entry in "${FILES[@]}"; do
                 [[ "$entry" == "$EXT_CHECKSUM_FILE" ]] && continue
+                [[ "$entry" == ".extension" ]] && continue
                 if [[ -d "$entry" ]]; then
                     find "$entry" -type f
                 elif [[ -f "$entry" ]]; then
