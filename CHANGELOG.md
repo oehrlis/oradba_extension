@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Makefile Consolidation**: Standardized Makefile with oradba conventions
+  - Updated header format with author, license, and reference information
+  - Renamed variables to match oradba naming: `COLOR_*`, direct tool detection
+  - Renamed targets: `lint-sh` → `lint-shell`, `lint-md` → `lint-markdown`
+  - Added aliases `lint-sh` and `lint-md` for backward compatibility
+  - Standardized error messages and formatting throughout
+  - Aligned section headers and structure with oradba/Makefile
+  - Maintained extension-specific features: tools, info, status, shortcuts
+
 ## [0.3.0] - 2026-01-12
 
 ### Added

@@ -1,344 +1,316 @@
-# =============================================================================
-# OraDBA Extension Makefile
-# =============================================================================
-# Comprehensive development workflow for the OraDBA extension template
-#
-# Usage:
-#   make help          - Show this help
-#   make lint          - Run all linters
-#   make test          - Run tests
-#   make build         - Build distribution tarball
-#   make ci            - Run full CI pipeline
-#
-# =============================================================================
+# ------------------------------------------------------------------------------
+# OraDBA - Oracle Database Infrastructure and Security, 5630 Muri, Switzerland
+# ------------------------------------------------------------------------------
+# Name.......: Makefile
+# Author.....: Stefan Oehrli (oes) stefan.oehrli@oradba.ch
+# Editor.....: Stefan Oehrli
+# Date.......: 2025.12.19
+# Revision...: 0.3.0
+# Purpose....: Development workflow automation for OraDBA Extension template.
+#              Provides targets for testing, linting, formatting, building,
+#              and releasing.
+# Notes......: Use 'make help' to show all available targets
+# Reference..: https://github.com/oehrlis/oradba_extension
+# License....: Apache License Version 2.0, January 2004 as shown
+#              at http://www.apache.org/licenses/
+# ------------------------------------------------------------------------------
 
+# Project configuration
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-# -----------------------------------------------------------------------------
-# Project Configuration
-# -----------------------------------------------------------------------------
+# Directories and Configuration
 DIST ?= dist
 VERSION := $(shell cat VERSION 2>/dev/null || echo "0.0.0")
 EXTENSION_NAME := $(shell grep '^name:' .extension 2>/dev/null | awk '{print $$2}' || echo "extension-template")
 
-# -----------------------------------------------------------------------------
-# Tool Detection
-# -----------------------------------------------------------------------------
-HAS_SHELLCHECK := $(shell command -v shellcheck 2>/dev/null)
-HAS_SHFMT := $(shell command -v shfmt 2>/dev/null)
-HAS_MARKDOWNLINT := $(shell command -v markdownlint 2>/dev/null)
-HAS_BATS := $(shell command -v bats 2>/dev/null)
-HAS_GIT := $(shell command -v git 2>/dev/null)
+# Tools
+SHELLCHECK		:= $(shell command -v shellcheck 2>/dev/null)
+SHFMT 			:= $(shell command -v shfmt 2>/dev/null)
+MARKDOWNLINT	:= $(shell command -v markdownlint 2>/dev/null || command -v markdownlint-cli 2>/dev/null)
+BATS 			:= $(shell command -v bats 2>/dev/null)
+GIT 			:= $(shell command -v git 2>/dev/null)
 
-# -----------------------------------------------------------------------------
-# Color Definitions
-# -----------------------------------------------------------------------------
-RED := \033[0;31m
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-BLUE := \033[0;34m
-NC := \033[0m # No Color
+# Color output
+COLOR_RESET 	:= \033[0m
+COLOR_BOLD		:= \033[1m
+COLOR_GREEN 	:= \033[32m
+COLOR_YELLOW	:= \033[33m
+COLOR_BLUE 		:= \033[34m
+COLOR_RED 		:= \033[31m
 
-# -----------------------------------------------------------------------------
-# Help System
-# -----------------------------------------------------------------------------
+# ==============================================================================
+# Help
+# ==============================================================================
+
 .PHONY: help
 help: ## Show this help message
+	@echo -e "$(COLOR_BOLD)OraDBA Extension Development Makefile$(COLOR_RESET)"
+	@echo "Version: $(VERSION)"
 	@echo ""
-	@echo -e "$(BLUE)OraDBA Extension Development Makefile$(NC)"
+	@echo -e "$(COLOR_BOLD)Usage:$(COLOR_RESET)"
+	@echo -e "  make $(COLOR_GREEN)<target>$(COLOR_RESET)"
 	@echo ""
-	@echo -e "$(GREEN)Development Targets:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z_-]+:.*?## .*Development/ {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(COLOR_BOLD)Development:$(COLOR_RESET)"
+	@grep -E '^(test|lint|format|check).*:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[32m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(GREEN)Linting & Formatting:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z_-]+:.*?## .*(Lint|Format|Check)/ {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(COLOR_BOLD)Build & Distribution:$(COLOR_RESET)"
+	@grep -E '^(build|clean).*:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[32m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(GREEN)Build & Release:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z_-]+:.*?## .*(Build|Clean|Release)/ {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(COLOR_BOLD)Version & Git:$(COLOR_RESET)"
+	@grep -E '^(version|tag|status).*:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[32m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(GREEN)Version Management:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z_-]+:.*?## .*Version/ {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(COLOR_BOLD)CI/CD & Tools:$(COLOR_RESET)"
+	@grep -E '^(ci|pre-commit|tools|info).*:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[32m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(GREEN)CI/CD & Tools:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z_-]+:.*?## .*(CI|Tool|Info|Status)/ {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(COLOR_BOLD)Quick Shortcuts:$(COLOR_RESET)"
+	@grep -E '^[tlfbc]:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[32m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(GREEN)Quick Shortcuts:$(NC)"
-	@echo -e "  $(GREEN)t$(NC)                  Alias for 'test'"
-	@echo -e "  $(GREEN)l$(NC)                  Alias for 'lint'"
-	@echo -e "  $(GREEN)f$(NC)                  Alias for 'format'"
-	@echo -e "  $(GREEN)b$(NC)                  Alias for 'build'"
-	@echo -e "  $(GREEN)c$(NC)                  Alias for 'clean'"
-	@echo ""
+	@echo -e "$(COLOR_BOLD)Examples:$(COLOR_RESET)"
+	@echo "  make test              # Run tests"
+	@echo "  make lint              # Run all linters"
+	@echo "  make format            # Format code"
+	@echo "  make build             # Build extension"
+	@echo "  make ci                # Run full CI pipeline"
 
-# -----------------------------------------------------------------------------
-# Development Targets
-# -----------------------------------------------------------------------------
+# ==============================================================================
+# Development
+# ==============================================================================
+
 .PHONY: test
-test: ## Development: Run BATS tests
-	@echo -e "$(BLUE)Running tests...$(NC)"
-ifndef HAS_BATS
-	@echo -e "$(RED)Error: bats not found$(NC)"
-	@echo -e "$(YELLOW)Install with: apt-get install bats (Ubuntu) or brew install bats-core (macOS)$(NC)"
-	@exit 1
-endif
-	@bats tests && echo -e "$(GREEN)✓ Tests passed$(NC)" || (echo -e "$(RED)✗ Tests failed$(NC)" && exit 1)
+test: ## Run BATS tests
+	@echo -e "$(COLOR_BLUE)Running tests...$(COLOR_RESET)"
+	@if [ -z "$(BATS)" ]; then \
+		echo -e "$(COLOR_RED)Error: bats not found. Install with: brew install bats-core$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@$(BATS) tests && echo -e "$(COLOR_GREEN)✓ Tests passed$(COLOR_RESET)" || (echo -e "$(COLOR_RED)✗ Tests failed$(COLOR_RESET)" && exit 1)
 
-# -----------------------------------------------------------------------------
+# ==============================================================================
 # Linting & Formatting
-# -----------------------------------------------------------------------------
+# ==============================================================================
+
 .PHONY: lint
-lint: lint-sh lint-md ## Lint: Run all linters (shellcheck + markdownlint)
+lint: lint-shell lint-markdown ## Run all linters
+
+.PHONY: lint-shell
+lint-shell: ## Lint shell scripts with shellcheck
+	@echo -e "$(COLOR_BLUE)Linting shell scripts...$(COLOR_RESET)"
+	@if [ -n "$(SHELLCHECK)" ]; then \
+		FAILED=0; \
+		while IFS= read -r -d '' file; do \
+			echo -e "  Checking $$file..."; \
+			$(SHELLCHECK) -x -S warning "$$file" || FAILED=1; \
+		done < <(find scripts bin lib tests \( -name "*.sh" -o -name "*.bats" \) -type f -print0 2>/dev/null); \
+		if [ $$FAILED -eq 0 ]; then \
+			echo -e "$(COLOR_GREEN)✓ All shell scripts passed linting$(COLOR_RESET)"; \
+		else \
+			echo -e "$(COLOR_RED)✗ Shell linting failed$(COLOR_RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo -e "$(COLOR_RED)Error: shellcheck not found. Install with: brew install shellcheck$(COLOR_RESET)"; \
+		exit 1; \
+	fi
 
 .PHONY: lint-sh
-lint-sh: ## Lint: Run shellcheck on shell scripts
-	@echo -e "$(BLUE)Linting shell scripts...$(NC)"
-ifndef HAS_SHELLCHECK
-	@echo -e "$(RED)Error: shellcheck not found$(NC)"
-	@echo -e "$(YELLOW)Install with: apt-get install shellcheck (Ubuntu) or brew install shellcheck (macOS)$(NC)"
-	@exit 1
-endif
-	@FAILED=0; \
-	while IFS= read -r -d '' file; do \
-		echo -e "  Checking $$file..."; \
-		shellcheck -e SC1091 "$$file" || FAILED=1; \
-	done < <(find scripts bin lib tests \( -name "*.sh" -o -name "*.bats" \) -type f -print0 2>/dev/null); \
-	if [ $$FAILED -eq 0 ]; then \
-		echo -e "$(GREEN)✓ Shell linting passed$(NC)"; \
+lint-sh: lint-shell ## Alias for lint-shell
+
+.PHONY: lint-markdown
+lint-markdown: ## Lint Markdown files with markdownlint
+	@echo -e "$(COLOR_BLUE)Linting Markdown files...$(COLOR_RESET)"
+	@if [ -n "$(MARKDOWNLINT)" ]; then \
+		$(MARKDOWNLINT) --config .markdownlint.yaml '**/*.md' --ignore node_modules --ignore dist --ignore build || exit 1; \
+		echo -e "$(COLOR_GREEN)✓ Markdown files passed linting$(COLOR_RESET)"; \
 	else \
-		echo -e "$(RED)✗ Shell linting failed$(NC)"; \
-		exit 1; \
+		echo -e "$(COLOR_YELLOW)Warning: markdownlint not found. Install with: npm install -g markdownlint-cli$(COLOR_RESET)"; \
 	fi
 
 .PHONY: lint-md
-lint-md: ## Lint: Run markdownlint on markdown files
-	@echo -e "$(BLUE)Linting markdown files...$(NC)"
-ifndef HAS_MARKDOWNLINT
-	@echo -e "$(YELLOW)Warning: markdownlint not found (optional)$(NC)"
-	@echo -e "$(YELLOW)Install with: npm install -g markdownlint-cli$(NC)"
-else
-	@markdownlint "**/*.md" --ignore node_modules --ignore dist --ignore build && \
-		echo -e "$(GREEN)✓ Markdown linting passed$(NC)" || \
-		(echo -e "$(RED)✗ Markdown linting failed$(NC)" && exit 1)
-endif
+lint-md: lint-markdown ## Alias for lint-markdown
 
 .PHONY: format
-format: ## Format: Format shell scripts with shfmt
-	@echo -e "$(BLUE)Formatting shell scripts...$(NC)"
-ifndef HAS_SHFMT
-	@echo -e "$(YELLOW)Warning: shfmt not found (optional)$(NC)"
-	@echo -e "$(YELLOW)Install with: go install mvdan.cc/sh/v3/cmd/shfmt@latest$(NC)"
-else
-	@FAILED=0; \
-	while IFS= read -r -d '' file; do \
-		echo -e "  Formatting $$file..."; \
-		shfmt -i 4 -bn -ci -sr -w "$$file" || FAILED=1; \
-	done < <(find scripts bin lib -name "*.sh" -type f -print0 2>/dev/null); \
-	if [ $$FAILED -eq 0 ]; then \
-		echo -e "$(GREEN)✓ Formatting complete$(NC)"; \
+format: ## Format shell scripts with shfmt
+	@echo -e "$(COLOR_BLUE)Formatting shell scripts...$(COLOR_RESET)"
+	@if [ -n "$(SHFMT)" ]; then \
+		find scripts bin lib -name "*.sh" -type f | \
+			xargs $(SHFMT) -i 4 -bn -ci -sr -w; \
+		echo -e "$(COLOR_GREEN)✓ Scripts formatted$(COLOR_RESET)"; \
 	else \
-		echo -e "$(RED)✗ Formatting failed$(NC)"; \
-		exit 1; \
+		echo -e "$(COLOR_YELLOW)Warning: shfmt not found. Install with: brew install shfmt$(COLOR_RESET)"; \
 	fi
-endif
 
 .PHONY: format-check
-format-check: ## Format: Check if shell scripts are formatted correctly
-	@echo -e "$(BLUE)Checking shell script formatting...$(NC)"
-ifndef HAS_SHFMT
-	@echo -e "$(YELLOW)Warning: shfmt not found (optional) - skipping format check$(NC)"
-else
-	@FILES=$$(find scripts bin lib -name "*.sh" -type f 2>/dev/null); \
-	if [ -z "$$FILES" ]; then \
-		echo -e "$(YELLOW)No shell scripts found to check$(NC)"; \
+format-check: ## Check if scripts are formatted correctly
+	@echo -e "$(COLOR_BLUE)Checking script formatting...$(COLOR_RESET)"
+	@if [ -n "$(SHFMT)" ]; then \
+		find scripts bin lib -name "*.sh" -type f | \
+			xargs $(SHFMT) -i 4 -bn -ci -sr -d || \
+			(echo -e "$(COLOR_RED)✗ Scripts need formatting. Run: make format$(COLOR_RESET)" && exit 1); \
+		echo -e "$(COLOR_GREEN)✓ All scripts properly formatted$(COLOR_RESET)"; \
 	else \
-		UNFORMATTED=$$(echo "$$FILES" | xargs shfmt -i 4 -bn -ci -sr -d 2>/dev/null); \
-		if [ -n "$$UNFORMATTED" ]; then \
-			echo -e "$(RED)✗ The following files are not formatted correctly:$(NC)"; \
-			echo "$$UNFORMATTED"; \
-			echo -e "$(YELLOW)Run 'make format' to fix$(NC)"; \
-			exit 1; \
-		else \
-			echo -e "$(GREEN)✓ All files are properly formatted$(NC)"; \
-		fi; \
+		echo -e "$(COLOR_YELLOW)Warning: shfmt not found$(COLOR_RESET)"; \
 	fi
-endif
 
 .PHONY: check
-check: lint test ## Check: Run lint and test (for quick validation)
-	@echo -e "$(GREEN)✓ All checks passed$(NC)"
+check: lint test ## Run all checks (lint + test)
+	@echo -e "$(COLOR_GREEN)✓ All checks passed$(COLOR_RESET)"
 
-# -----------------------------------------------------------------------------
-# Build & Distribution
-# -----------------------------------------------------------------------------
+# ==============================================================================
+# Build and Distribution
+# ==============================================================================
+
 .PHONY: build
-build: ## Build: Build extension tarball
-	@echo -e "$(BLUE)Building extension tarball...$(NC)"
-	@./scripts/build.sh --dist "$(DIST)" && echo -e "$(GREEN)✓ Build complete$(NC)" || (echo -e "$(RED)✗ Build failed$(NC)" && exit 1)
+build: ## Build extension tarball
+	@echo -e "$(COLOR_BLUE)Building extension tarball...$(COLOR_RESET)"
+	@./scripts/build.sh --dist "$(DIST)" && echo -e "$(COLOR_GREEN)✓ Build complete$(COLOR_RESET)" || (echo -e "$(COLOR_RED)✗ Build failed$(COLOR_RESET)" && exit 1)
 
 .PHONY: clean
-clean: ## Clean: Remove dist directory
-	@echo -e "$(BLUE)Cleaning dist directory...$(NC)"
-	@rm -rf "$(DIST)" && echo -e "$(GREEN)✓ Clean complete$(NC)"
+clean: ## Clean build artifacts
+	@echo -e "$(COLOR_BLUE)Cleaning build artifacts...$(COLOR_RESET)"
+	@rm -rf "$(DIST)"
+	@find . -name "*.log" -type f -delete 2>/dev/null || true
+	@find . -name "*.tmp" -type f -delete 2>/dev/null || true
+	@find . -name "*~" -type f -delete 2>/dev/null || true
+	@echo -e "$(COLOR_GREEN)✓ Cleaned$(COLOR_RESET)"
 
 .PHONY: clean-all
-clean-all: clean ## Clean: Deep clean including caches
-	@echo -e "$(BLUE)Deep cleaning...$(NC)"
-	@find . -type f -name "*.log" -delete 2>/dev/null || true
+clean-all: clean ## Deep clean (including caches)
+	@echo -e "$(COLOR_BLUE)Deep cleaning...$(COLOR_RESET)"
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name ".DS_Store" -delete 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Deep clean complete$(NC)"
+	@echo -e "$(COLOR_GREEN)✓ Deep cleaned$(COLOR_RESET)"
 
-# -----------------------------------------------------------------------------
-# Version Management
-# -----------------------------------------------------------------------------
+# ==============================================================================
+# Git and Version Management
+# ==============================================================================
+
 .PHONY: version
-version: ## Version: Display current version
-	@echo -e "$(BLUE)Current version:$(NC) $(VERSION)"
+version: ## Show current version
+	@echo -e "$(COLOR_BOLD)OraDBA Extension Version: $(COLOR_GREEN)$(VERSION)$(COLOR_RESET)"
 
 .PHONY: version-bump-patch
-version-bump-patch: ## Version: Bump patch version (0.0.X)
-ifndef HAS_GIT
-	@echo -e "$(RED)Error: git not found$(NC)"
-	@exit 1
-endif
-	@echo -e "$(BLUE)Bumping patch version...$(NC)"
-	@CURRENT=$$(cat VERSION | tr -d '[:space:]'); \
-	MAJOR=$$(echo $$CURRENT | cut -d. -f1); \
-	MINOR=$$(echo $$CURRENT | cut -d. -f2); \
-	PATCH=$$(echo $$CURRENT | cut -d. -f3); \
-	NEW_PATCH=$$((PATCH + 1)); \
-	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
-	echo "$$NEW_VERSION" > VERSION; \
-	echo -e "$(GREEN)Version bumped: $$CURRENT → $$NEW_VERSION$(NC)"
+version-bump-patch: ## Bump patch version (0.0.X)
+	@echo -e "$(COLOR_BLUE)Bumping patch version...$(COLOR_RESET)"
+	@current=$$(cat VERSION); \
+	major=$${current%%.*}; \
+	rest=$${current#*.}; \
+	minor=$${rest%%.*}; \
+	patch=$${rest#*.}; \
+	new_patch=$$((patch + 1)); \
+	echo "$$major.$$minor.$$new_patch" > VERSION; \
+	echo -e "$(COLOR_GREEN)✓ Version bumped: $$current → $$major.$$minor.$$new_patch$(COLOR_RESET)"
 
 .PHONY: version-bump-minor
-version-bump-minor: ## Version: Bump minor version (0.X.0)
-ifndef HAS_GIT
-	@echo -e "$(RED)Error: git not found$(NC)"
-	@exit 1
-endif
-	@echo -e "$(BLUE)Bumping minor version...$(NC)"
-	@CURRENT=$$(cat VERSION | tr -d '[:space:]'); \
-	MAJOR=$$(echo $$CURRENT | cut -d. -f1); \
-	MINOR=$$(echo $$CURRENT | cut -d. -f2); \
-	NEW_MINOR=$$((MINOR + 1)); \
-	NEW_VERSION="$$MAJOR.$$NEW_MINOR.0"; \
-	echo "$$NEW_VERSION" > VERSION; \
-	echo -e "$(GREEN)Version bumped: $$CURRENT → $$NEW_VERSION$(NC)"
+version-bump-minor: ## Bump minor version (0.X.0)
+	@echo -e "$(COLOR_BLUE)Bumping minor version...$(COLOR_RESET)"
+	@current=$$(cat VERSION); \
+	major=$${current%%.*}; \
+	rest=$${current#*.}; \
+	minor=$${rest%%.*}; \
+	new_minor=$$((minor + 1)); \
+	echo "$$major.$$new_minor.0" > VERSION; \
+	echo -e "$(COLOR_GREEN)✓ Version bumped: $$current → $$major.$$new_minor.0$(COLOR_RESET)"
 
 .PHONY: version-bump-major
-version-bump-major: ## Version: Bump major version (X.0.0)
-ifndef HAS_GIT
-	@echo -e "$(RED)Error: git not found$(NC)"
-	@exit 1
-endif
-	@echo -e "$(BLUE)Bumping major version...$(NC)"
-	@CURRENT=$$(cat VERSION | tr -d '[:space:]'); \
-	MAJOR=$$(echo $$CURRENT | cut -d. -f1); \
-	NEW_MAJOR=$$((MAJOR + 1)); \
-	NEW_VERSION="$$NEW_MAJOR.0.0"; \
-	echo "$$NEW_VERSION" > VERSION; \
-	echo -e "$(GREEN)Version bumped: $$CURRENT → $$NEW_VERSION$(NC)"
+version-bump-major: ## Bump major version (X.0.0)
+	@echo -e "$(COLOR_BLUE)Bumping major version...$(COLOR_RESET)"
+	@current=$$(cat VERSION); \
+	major=$${current%%.*}; \
+	new_major=$$((major + 1)); \
+	echo "$$new_major.0.0" > VERSION; \
+	echo -e "$(COLOR_GREEN)✓ Version bumped: $$current → $$new_major.0.0$(COLOR_RESET)"
 
 .PHONY: tag
-tag: ## Version: Create git tag from VERSION file
-ifndef HAS_GIT
-	@echo -e "$(RED)Error: git not found$(NC)"
-	@exit 1
-endif
-	@echo -e "$(BLUE)Creating git tag...$(NC)"
-	@VERSION=$$(cat VERSION | tr -d '[:space:]'); \
-	git tag -a "v$$VERSION" -m "Release v$$VERSION" && \
-	echo -e "$(GREEN)✓ Tag v$$VERSION created$(NC)" && \
-	echo -e "$(YELLOW)Push with: git push origin v$$VERSION$(NC)" || \
-	(echo -e "$(RED)✗ Failed to create tag$(NC)" && exit 1)
+tag: ## Create git tag from VERSION file
+	@if [ -n "$(GIT)" ]; then \
+		$(GIT) tag -a "v$(VERSION)" -m "Release v$(VERSION)"; \
+		echo -e "$(COLOR_GREEN)✓ Created tag v$(VERSION)$(COLOR_RESET)"; \
+	fi
 
 .PHONY: status
-status: ## Status: Show git status and current version
-ifndef HAS_GIT
-	@echo -e "$(RED)Error: git not found$(NC)"
-	@exit 1
-endif
-	@echo -e "$(BLUE)=== Repository Status ===$(NC)"
-	@echo -e "$(BLUE)Version:$(NC) $(VERSION)"
-	@echo -e "$(BLUE)Extension:$(NC) $(EXTENSION_NAME)"
-	@echo ""
-	@git status -s
+status: ## Show git status and current version
+	@echo -e "$(COLOR_BOLD)Project Status$(COLOR_RESET)"
+	@echo -e "Extension: $(COLOR_GREEN)$(EXTENSION_NAME)$(COLOR_RESET)"
+	@echo -e "Version: $(COLOR_GREEN)$(VERSION)$(COLOR_RESET)"
+	@if [ -n "$(GIT)" ]; then \
+		echo "";\
+		$(GIT) status -sb; \
+	fi
 
-# -----------------------------------------------------------------------------
+# ==============================================================================
 # CI/CD Helpers
-# -----------------------------------------------------------------------------
+# ==============================================================================
+
 .PHONY: ci
-ci: clean lint test build ## CI: Run full CI pipeline
-	@echo -e "$(GREEN)✓ CI pipeline complete$(NC)"
+ci: clean lint test build ## Run CI pipeline locally
+	@echo -e "$(COLOR_GREEN)✓ CI pipeline completed successfully$(COLOR_RESET)"
 
 .PHONY: pre-commit
-pre-commit: format lint test ## CI: Run pre-commit checks
-	@echo -e "$(GREEN)✓ Pre-commit checks passed$(NC)"
+pre-commit: format lint test ## Run pre-commit checks
+	@echo -e "$(COLOR_GREEN)✓ Pre-commit checks passed$(COLOR_RESET)"
+
+# ==============================================================================
+# Development Tools
+# ==============================================================================
+
+.PHONY: tools
+tools: ## Show installed development tools
+	@echo -e "$(COLOR_BOLD)Development Tools Status$(COLOR_RESET)"
+	@echo ""
+	@printf "%-20s %s\n" "Tool" "Status"
+	@printf "%-20s %s\n" "----" "------"
+	@printf "%-20s %s\n" "shellcheck" "$$([[ -n '$(SHELLCHECK)' ]] && echo -e '$(COLOR_GREEN)✓ installed$(COLOR_RESET)' || echo -e '$(COLOR_RED)✗ not found$(COLOR_RESET)')"
+	@printf "%-20s %s\n" "shfmt" "$$([[ -n '$(SHFMT)' ]] && echo -e '$(COLOR_GREEN)✓ installed$(COLOR_RESET)' || echo -e '$(COLOR_RED)✗ not found$(COLOR_RESET)')"
+	@printf "%-20s %s\n" "markdownlint" "$$([[ -n '$(MARKDOWNLINT)' ]] && echo -e '$(COLOR_GREEN)✓ installed$(COLOR_RESET)' || echo -e '$(COLOR_RED)✗ not found$(COLOR_RESET)')"
+	@printf "%-20s %s\n" "bats" "$$([[ -n '$(BATS)' ]] && echo -e '$(COLOR_GREEN)✓ installed$(COLOR_RESET)' || echo -e '$(COLOR_RED)✗ not found$(COLOR_RESET)')"
+	@printf "%-20s %s\n" "git" "$$([[ -n '$(GIT)' ]] && echo -e '$(COLOR_GREEN)✓ installed$(COLOR_RESET)' || echo -e '$(COLOR_RED)✗ not found$(COLOR_RESET)')"
+	@echo ""
+	@echo -e "$(COLOR_YELLOW)Install missing tools:$(COLOR_RESET)"
+	@echo "  macOS:  brew install shellcheck shfmt bats-core markdownlint-cli"
+	@echo "  Linux:  apt-get install shellcheck shfmt bats"
+	@echo "          npm install -g markdownlint-cli"
+
+# ==============================================================================
+# Info
+# ==============================================================================
 
 .PHONY: info
-info: ## Info: Show extension information
-	@echo -e "$(BLUE)=== Extension Information ===$(NC)"
-	@echo -e "$(BLUE)Name:$(NC)       $(EXTENSION_NAME)"
-	@echo -e "$(BLUE)Version:$(NC)    $(VERSION)"
-	@echo -e "$(BLUE)Dist dir:$(NC)   $(DIST)"
+info: ## Show project information
+	@echo -e "$(COLOR_BOLD)OraDBA Extension Information$(COLOR_RESET)"
 	@echo ""
-	@echo -e "$(BLUE)=== Directory Structure ===$(NC)"
-	@ls -la | grep "^d" || true
+	@echo "Extension:   $(EXTENSION_NAME)"
+	@echo "Version:     $(VERSION)"
+	@echo "Dist dir:    $(DIST)"
 	@echo ""
-	@echo -e "$(BLUE)=== Content Directories ===$(NC)"
-	@for dir in bin sql rcv etc lib; do \
+	@echo "Directories:"
+	@for dir in bin sql rcv etc lib scripts tests; do \
 		if [ -d "$$dir" ]; then \
-			count=$$(find "$$dir" -type f 2>/dev/null | wc -l); \
-			echo -e "  $(GREEN)$$dir$(NC): $$count files"; \
+			count=$$(find "$$dir" -type f 2>/dev/null | wc -l | xargs); \
+			printf "  %-12s %s files\n" "$$dir:" "$$count"; \
 		fi; \
 	done
 
-.PHONY: tools
-tools: ## Tools: Show development tools status
-	@echo -e "$(BLUE)=== Development Tools Status ===$(NC)"
-	@echo ""
-	@echo -e "$(BLUE)Required Tools:$(NC)"
-ifdef HAS_SHELLCHECK
-	@echo -e "  $(GREEN)✓$(NC) shellcheck  $$(shellcheck --version | head -n2 | tail -n1)"
-else
-	@echo -e "  $(RED)✗$(NC) shellcheck  (not found)"
-	@echo -e "    $(YELLOW)Install: apt-get install shellcheck (Ubuntu) or brew install shellcheck (macOS)$(NC)"
-endif
-ifdef HAS_BATS
-	@echo -e "  $(GREEN)✓$(NC) bats        $$(bats --version 2>/dev/null | head -n1)"
-else
-	@echo -e "  $(RED)✗$(NC) bats        (not found)"
-	@echo -e "    $(YELLOW)Install: apt-get install bats (Ubuntu) or brew install bats-core (macOS)$(NC)"
-endif
-ifdef HAS_GIT
-	@echo -e "  $(GREEN)✓$(NC) git         $$(git --version | cut -d' ' -f3)"
-else
-	@echo -e "  $(RED)✗$(NC) git         (not found)"
-endif
-	@echo ""
-	@echo -e "$(BLUE)Optional Tools:$(NC)"
-ifdef HAS_SHFMT
-	@echo -e "  $(GREEN)✓$(NC) shfmt       $$(shfmt --version 2>/dev/null | head -n1)"
-else
-	@echo -e "  $(YELLOW)○$(NC) shfmt       (not found - optional)"
-	@echo -e "    $(YELLOW)Install: go install mvdan.cc/sh/v3/cmd/shfmt@latest$(NC)"
-endif
-ifdef HAS_MARKDOWNLINT
-	@echo -e "  $(GREEN)✓$(NC) markdownlint $$(markdownlint --version 2>/dev/null | head -n1)"
-else
-	@echo -e "  $(YELLOW)○$(NC) markdownlint (not found - optional)"
-	@echo -e "    $(YELLOW)Install: npm install -g markdownlint-cli$(NC)"
-endif
-	@echo ""
-
-# -----------------------------------------------------------------------------
+# ==============================================================================
 # Quick Shortcuts
-# -----------------------------------------------------------------------------
-.PHONY: t l f b c
-t: test ## Shortcut for 'test'
-l: lint ## Shortcut for 'lint'
-f: format ## Shortcut for 'format'
-b: build ## Shortcut for 'build'
-c: clean ## Shortcut for 'clean'
+# ==============================================================================
+
+.PHONY: t
+t: test ## Shortcut for test
+
+.PHONY: l
+l: lint ## Shortcut for lint
+
+.PHONY: f
+f: format ## Shortcut for format
+
+.PHONY: b
+b: build ## Shortcut for build
+
+.PHONY: c
+c: clean ## Shortcut for clean
