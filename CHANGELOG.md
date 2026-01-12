@@ -18,6 +18,11 @@
   - Release workflow uses `make ci` for comprehensive checks
   - Improved consistency and maintainability of workflow definitions
 
+- **Extension Distribution**: Added `doc` folder to extension package
+  - Updated `.extension` file to include `doc` in provides section
+  - Updated `scripts/build.sh` to include `doc` folder in tarball
+  - Documentation now distributed with extension template
+
 ## [0.3.0] - 2026-01-12
 
 ### Added

@@ -9,3 +9,4 @@ provides:
   sql: true
   rcv: true
   etc: true
+  doc: true

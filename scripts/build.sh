@@ -121,6 +121,7 @@ CONTENT_PATHS=(
     rcv
     etc
     lib
+    doc
 )
 FILES=()
 for path in "${CONTENT_PATHS[@]}"; do
