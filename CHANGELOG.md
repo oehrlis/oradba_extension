@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-21
+
+### Added
+
+- **OraDBA v0.19.x Integration** - Extension loading in new architecture
+  - Extensions now load via `oradba_env_builder.sh` after Oracle environment setup
+  - Priority-based loading sequence (lower priority = earlier in PATH, default: 50)
+  - Respects `provides` metadata (bin/sql/rcv) from `.extension` file
+  - Automatic PATH, SQLPATH, and RMAN path deduplication
+  - Environment variables created for each extension: `ORADBA_EXT_<NAME>_PATH` and `<NAME>_BASE`
+  - Navigation aliases: `cde<name>` for quick directory access
+
+- **Extension Metadata Enhancement** - New `uses_oradba_libs` field
+  - Optional field to document if extension uses OraDBA common libraries
+  - Values: `true` (uses oradba_common.sh/etc.) or `false` (standalone, default)
+  - Useful for dependency tracking and documentation
+
+### Changed
+
+- **Documentation Update** - Comprehensive v0.19.x integration guide
+  - Documented loading sequence: Oracle env → configs → extensions → deduplication
+  - Explained priority field usage with examples (10-90 scale)
+  - Added `provides` metadata documentation
+  - Documented environment variables and aliases
+  - Added examples for disabling extensions
+  - Included backward compatibility notes
+
+### Fixed
+
+- Extension loading now properly integrates with OraDBA v0.19.x architecture
+- PATH/SQLPATH updates respect new deduplication logic
+
 ## [0.3.1] - 2026-01-13
 
 ### Added

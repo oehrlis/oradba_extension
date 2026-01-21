@@ -118,6 +118,7 @@ provides:
 - **Lower priority**: Use 60-90 for supplementary tools
 
 Example priorities:
+
 - 10-20: Critical overrides (e.g., custom sqlplus wrapper)
 - 30-40: Enhanced tooling (e.g., extended DBA scripts)
 - 50: Default (loaded after Oracle, most extensions)
@@ -149,6 +150,7 @@ The `provides` section controls what directories are added:
 ### Environment Variables
 
 Each loaded extension gets:
+
 - `ORADBA_EXT_<NAME>_PATH="${ext_path}"` - Extension path reference
 - `<NAME>_BASE="${ext_path}"` - Shorthand base variable (e.g., ODB_DATASAFE_BASE)
 - Navigation alias: `cde<name>` - Quick cd to extension directory
@@ -156,11 +158,13 @@ Each loaded extension gets:
 ### Disabling Extensions
 
 Extensions can be disabled via:
+
 1. **.extension metadata**: Set `enabled: false`
 2. **Environment variable**: `export ORADBA_EXT_<NAME>_ENABLED=false`
 
 ### Backward Compatibility
 
 **Note**: OraDBA v0.19.0+ changed how extensions load. Pre-v0.19.0 extensions may need:
+
 - Updated `.extension` file with provides section
 - No code changes required if using standard bin/sql/rcv structure
