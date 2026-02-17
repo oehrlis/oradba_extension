@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Optional Extension Hook Examples (`etc/env.sh`, `etc/aliases.sh`)**
+  - Added template hook files for extension-level environment variables and aliases
+  - Added `.extension` metadata flags `load_env` and `load_aliases` (default: `false`)
+  - Hook loading remains opt-in and requires OraDBA global flag `ORADBA_EXTENSIONS_SOURCE_ETC=true`
+
+### Changed
+
+- **Documentation Update**
+  - Added hook usage and opt-in behavior to README and configuration/reference docs
+
+### Fixed
+
+- **Template Tests**
+  - Added tests to verify hook example files exist
+  - Added packaging test assertions that `etc/env.sh` and `etc/aliases.sh` are included in built tarballs
+
 ## [0.4.0] - 2026-01-21
 
 ### Added
@@ -193,7 +211,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Framework**: Bats tests for quality assurance
 - **Self-Documenting**: Comprehensive README and inline documentation
 
-[Unreleased]: https://github.com/oehrlis/oradba_extension/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/oehrlis/oradba_extension/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/oehrlis/oradba_extension/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/oehrlis/oradba_extension/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/oehrlis/oradba_extension/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/oehrlis/oradba_extension/compare/v0.1.1...v0.2.0

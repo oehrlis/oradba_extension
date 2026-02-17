@@ -14,6 +14,16 @@ setup() {
     checksum="${tarball}.sha256"
     [ -f "$tarball" ]
     [ -f "$checksum" ]
+
+    run tar -tzf "$tarball"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"etc/env.sh"* ]]
+    [[ "$output" == *"etc/aliases.sh"* ]]
+}
+
+@test "hook example files exist" {
+    [ -f "${REPO_ROOT}/etc/env.sh" ]
+    [ -f "${REPO_ROOT}/etc/aliases.sh" ]
 }
 
 @test "rename script supports dry run" {

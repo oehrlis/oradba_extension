@@ -7,19 +7,34 @@ Configuration guide for OraDBA Extension Template and extensions created from it
 The `.extension` file contains core metadata:
 
 ```ini
-# Extension metadata
-EXTENSION_NAME="extension"
-EXTENSION_VERSION="1.0.0"
-EXTENSION_PRIORITY="50"
-EXTENSION_DESCRIPTION="OraDBA extension template"
+name: extension-template
+version: 0.4.0
+description: Template OraDBA extension with starter scripts and docs
+enabled: true
+priority: 50
+load_env: false
+load_aliases: false
 ```
 
 ### Metadata Fields
 
-- **EXTENSION_NAME** - Unique identifier (lowercase, alphanumeric, hyphens/underscores)
-- **EXTENSION_VERSION** - Semantic version (MAJOR.MINOR.PATCH)
-- **EXTENSION_PRIORITY** - Load order (lower numbers load first, 1-99)
-- **EXTENSION_DESCRIPTION** - Brief description
+- **name** - Unique identifier (lowercase, alphanumeric, hyphens/underscores)
+- **version** - Semantic version (MAJOR.MINOR.PATCH)
+- **priority** - Load order (lower numbers load first, 1-99)
+- **description** - Brief description
+- **enabled** - Enable/disable extension loading
+- **load_env** - Source `etc/env.sh` when hook loading is globally enabled
+- **load_aliases** - Source `etc/aliases.sh` when hook loading is globally enabled
+
+## Optional Extension Hooks
+
+Extensions can provide optional `etc/env.sh` and `etc/aliases.sh` hook files.
+These hooks are sourced only when both conditions are true:
+
+1. OraDBA global setting: `ORADBA_EXTENSIONS_SOURCE_ETC=true`
+2. Extension metadata flag: `load_env: true` and/or `load_aliases: true`
+
+This opt-in design keeps hook sourcing explicit and safe by default.
 
 ### Priority Guidelines
 

@@ -11,7 +11,9 @@ oradba_extension/
 ├── bin/                      # Executable scripts
 │   └── extension_tool.sh     # Example extension tool
 ├── etc/                      # Configuration files
-│   └── extension-template.conf.example
+│   ├── extension-template.conf.example
+│   ├── env.sh               # Optional env hook (opt-in)
+│   └── aliases.sh           # Optional alias hook (opt-in)
 ├── lib/                      # Library functions
 │   └── common.sh            # Common functions
 ├── rcv/                     # RMAN recovery scripts

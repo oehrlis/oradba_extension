@@ -23,6 +23,8 @@ bin/                        # Scripts added to PATH
 sql/                        # SQL scripts added to SQLPATH
 rcv/                        # RMAN scripts
 etc/                        # Config examples (not auto-loaded)
+  env.sh                    # Optional env hook (opt-in)
+  aliases.sh                # Optional alias hook (opt-in)
 lib/                        # Shared helpers
 scripts/                    # Dev tooling (build/rename)
 tests/                      # BATS tests for dev tooling
@@ -85,6 +87,28 @@ When OraDBA verifies extension integrity, files matching these patterns are skip
 2. Keep `.extension` metadata current (name, version, priority, provides).
 3. Users copy any needed settings from `etc/<name>.conf.example` into `${ORADBA_PREFIX}/etc/oradba_customer.conf`.
 4. Extract the tarball into `${ORADBA_LOCAL_BASE}`; auto-discovery will load the extension.
+
+### Optional `etc/` Hooks (`env.sh` / `aliases.sh`)
+
+OraDBA can source extension hook files from `etc/` when explicitly enabled.
+
+Required conditions:
+
+1. Global flag in OraDBA config:
+
+- `ORADBA_EXTENSIONS_SOURCE_ETC=true`
+
+1. Extension metadata flags in `.extension`:
+
+- `load_env: true` to source `etc/env.sh`
+- `load_aliases: true` to source `etc/aliases.sh`
+
+Default template values are disabled for safety:
+
+```yaml
+load_env: false
+load_aliases: false
+```
 
 ## How Extensions Load (OraDBA v0.19.0+)
 

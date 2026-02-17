@@ -5,6 +5,8 @@ author: OraDBA Team
 enabled: true
 priority: 50
 uses_oradba_libs: false
+load_env: false
+load_aliases: false
 provides:
   bin: true
   sql: true
